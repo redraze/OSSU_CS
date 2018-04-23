@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    History
+{% endblock %}
+
+{% block main %}
+    {% if rows %}
+    <table class="history">
+        <tr>
+            <th>Date/Time</th>
+            <th>Stock Name</th>
+            <th>Stock Symbol</th>
+            <th>Transaction Type</th>
+            <th>Price per Share (at time of transaction)</th>
+            <th>Number of Shares</th>
+            <th>Change in Balance</th>
+        </tr>
+        {% for row in rows %}
+        <tr>
+            {% for key, value in row.items() %}
+            <td>{{ value }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+    <br/>
+    <div class="form-group">
+        <form action="{{ url_for('history') }}" method="post">
+            <button class="btn btn-default">Clear History</button>
+        </form>
+    </div>
+    {% else %}
+    <div>No history to show.</div>
+    {% endif %}
+{% endblock %}
