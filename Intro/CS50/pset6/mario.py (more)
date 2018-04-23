@@ -1,0 +1,14 @@
+print ("Height: ", end="")
+while True:
+    try:
+        x = int(input())
+    except ValueError:
+        print ("Retry: ", end="")
+    else:
+        if x >= 0:
+            break
+        print ("Retry: ", end="")
+count = 1
+while count < x + 1:
+    print (((x-count) * " ") + (count * "#") + "  " + (count * "#"))
+    count += 1
