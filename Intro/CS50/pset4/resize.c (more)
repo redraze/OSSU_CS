@@ -1,0 +1,269 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+// include data types and structures for .bmp headers
+#include "bmp.h"
+
+int main(int argc, char *argv[])
+{
+    // ensure proper usage
+    if(argc != 4)
+    {
+        fprintf(stderr, "Usage: ./resize n file_in file_out\n\n     [  n = resize ratio");
+        fprintf(stderr, "\n\t0 > float n < 1 to make file in smaller\n\tn = 1 to copy\n\tint n > 1 to make file in larger\t  ]\n");
+        return 1;
+    }
+    
+    // ensure proper resize ratio
+    float resize_ratio = atof(argv[1]);
+    if(resize_ratio <= 0)
+    {
+          fprintf(stderr, "Resize ratio (n) must be larger than zero. %f\n", resize_ratio);
+          return 2;
+    }
+    if(resize_ratio > 1)
+    {
+        float part = fmod(resize_ratio, 1);
+        if(part != 0)
+        {
+        fprintf(stderr, "Resize ratio larger than one must be an interger.\n");
+        return 3;
+        }
+    }
+    
+    // assign file names
+    char *file_in = argv[2];
+    char *file_out = argv[3];
+    
+    // ensure file in can open
+    FILE *inptr = fopen(file_in, "r");
+    if(inptr == NULL)
+    {
+        fprintf(stderr, "Could not open file_in (%s)\n", file_in);
+        return 4;
+    }
+    
+    // ensure file out can be written
+    FILE* outptr = fopen(file_out, "w");
+    if(outptr == NULL)
+    {
+        fclose(inptr);
+        fprintf(stderr, "Count not create file_out (%s)\n", file_out);
+        return 5;
+    };
+    
+    // copy file (n = 1)
+    if(resize_ratio == 1)
+    {
+        // read in file .bmp headers
+        BITMAPFILEHEADER bf;
+        fread(&bf, sizeof(BITMAPFILEHEADER), 1, inptr);
+        BITMAPINFOHEADER bi;
+        fread(&bi, sizeof(BITMAPINFOHEADER), 1, inptr);
+        
+        // check file format (24-bit uncompressed BMP 4.0)
+        if(bf.bfType != 0x4d42 || bf.bfOffBits != 54 || bi.biSize != 40 ||
+        bi.biBitCount != 24 || bi.biCompression != 0)
+        {
+            fclose(inptr);
+            fclose(outptr);
+            fprintf(stderr, "Unsupported file format.\n");
+            return 6;
+        }
+        
+        // determine file in padding size
+        int padding_size = (4 - (bi.biWidth % 4)) % 4;
+        
+        // write headers to file out
+        fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, outptr);
+        fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, outptr);
+        
+        // iterate over each scanline
+        for(int i = 0; i < abs(bi.biHeight); i++)
+        {
+            // iterate over each pixel within current scanline
+            for(int j = 0; j < bi.biWidth; j++)
+            {
+                // create data storage, read file in to data storage, then write data storage to file out
+                RGBTRIPLE RGB;
+                fread(&RGB, sizeof(RGBTRIPLE), 1, inptr);
+                fwrite(&RGB, sizeof(RGBTRIPLE), 1, outptr);
+            }
+            // write in padding (if any)
+            for(int j = 0; j < padding_size; j++)
+            {
+                RGBTRIPLE PAD;
+                fread(&PAD, sizeof(RGBTRIPLE), 1, inptr);
+                fwrite(&PAD, sizeof(RGBTRIPLE), 1, outptr);
+            }
+        }
+        //printf("File copied!\n");
+    }
+    
+    // make file smaller (n < 1)
+    if(resize_ratio < 1)
+    {
+        // read in file .bmp headers
+        BITMAPFILEHEADER bf;
+        fread(&bf, sizeof(BITMAPFILEHEADER), 1, inptr);
+        BITMAPINFOHEADER bi;
+        fread(&bi, sizeof(BITMAPINFOHEADER), 1, inptr);
+            
+        // check file format (24-bit uncompressed BMP 4.0)
+        if(bf.bfType != 0x4d42 || bf.bfOffBits != 54 || bi.biSize != 40 ||
+        bi.biBitCount != 24 || bi.biCompression != 0)
+        {
+            fclose(inptr);
+            fclose(outptr);
+            fprintf(stderr, "Unsupported file format.\n");
+            return 6;
+        }
+        
+        // determine file in padding size (in pixels)
+        int in_padding_size = (4 - (bi.biWidth * sizeof(RGBTRIPLE)) % 4) % 4;
+        int out_padding_size = fmod((4 - fmod(bi.biWidth * resize_ratio * sizeof(RGBTRIPLE), 4)), 4);
+        
+        // resize necessary header dimensions
+        int old_biHeight = bi.biHeight;
+        int old_biWidth = bi.biWidth;
+        bi.biHeight *= resize_ratio;
+        bi.biWidth *= resize_ratio;
+        bi.biSizeImage = (abs(bi.biHeight) * bi.biWidth) * 3 + out_padding_size * abs(bi.biHeight);
+        bf.bfSize = bi.biSizeImage + 54;
+        
+        // write headers to file out
+        fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, outptr);
+        fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, outptr);
+        
+        // initialize counters
+        float row_count = 0;
+        float column_count = 0;
+        
+        // iterate over scanlines
+        for(int i = 0; i < abs(old_biHeight); i++)
+        {
+            row_count += resize_ratio;
+            if(row_count >= 1)
+            {
+                // iterate over each byte within scanline
+                for(int j = 0; j < old_biWidth; j++)
+                {
+                    column_count += resize_ratio;
+                    int *RGB = malloc(sizeof(RGBTRIPLE));
+                    fread(&RGB[0], sizeof(RGBTRIPLE), 1, inptr);
+                    // write bytes proportionately to n
+                    if(column_count >= 1){
+                        fwrite(&RGB[0], sizeof(RGBTRIPLE), 1, outptr);
+                        column_count--;
+                    }
+                    free(RGB);
+                }
+                // skip over file in padding
+                for(int k = 0; k < in_padding_size; k++)
+                {
+                    fseek(inptr, sizeof(BYTE), SEEK_CUR);
+                }
+                // write padding to file out
+                for(int k = 0; k < out_padding_size; k++)
+                {
+                    fputc(0x00, outptr);
+                }
+                row_count--;
+            }else
+            {
+                for(int k = 0; k < old_biWidth; k++)
+                {
+                    RGBTRIPLE RGB;
+                    fread(&RGB, sizeof(RGBTRIPLE), 1, inptr);
+                }
+                // skip file in padding
+                for(int k = 0; k < in_padding_size; k++)
+                {
+                    fseek(inptr, sizeof(BYTE), SEEK_CUR);
+                }
+            }
+        }
+        //printf("File resized (shrunk)!\n");
+    }
+    
+    // make file larger (int n > 1)
+    if(resize_ratio > 1)
+    {
+        // read in file .bmp headers
+        BITMAPFILEHEADER bf;
+        fread(&bf, sizeof(BITMAPFILEHEADER), 1, inptr);
+        BITMAPINFOHEADER bi;
+        fread(&bi, sizeof(BITMAPINFOHEADER), 1, inptr);
+            
+        // check file format (24-bit uncompressed BMP 4.0)
+        if(bf.bfType != 0x4d42 || bf.bfOffBits != 54 || bi.biSize != 40 ||
+        bi.biBitCount != 24 || bi.biCompression != 0)
+        {
+            fclose(inptr);
+            fclose(outptr);
+            fprintf(stderr, "Unsupported file format.\n");
+            return 6;
+        }
+        
+        // determine file in padding size (number of BYTES per scanline)
+        int in_padding_size = (4 - bi.biWidth * 3 % 4) % 4;
+        int out_padding_size = fmod((4 - fmod(bi.biWidth * resize_ratio * 3, 4)), 4);
+        
+        // resize necessary file dimensions
+        int old_biHeight = bi.biHeight;
+        int old_biWidth = bi.biWidth;
+        bi.biHeight *= resize_ratio;
+        bi.biWidth *= resize_ratio;
+        bi.biSizeImage = (abs(bi.biHeight) * bi.biWidth) * 3 + out_padding_size * abs(bi.biHeight);
+        bf.bfSize = bi.biSizeImage + 54;
+        
+        // write headers to file out
+        fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, outptr);
+        fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, outptr);
+        
+        // iterate over inptr scanlines
+        for(int i = 0; i < abs(old_biHeight); i++)
+        {
+            // read inptr pixels and store in array
+            int *RGB = malloc(abs(old_biWidth) * sizeof(RGBTRIPLE));
+            for(int j = 0; j < abs(old_biWidth); j++)
+            {
+                fread(&RGB[j], sizeof(RGBTRIPLE), 1, inptr);
+            }
+            // skip inptr padding (if any)
+            if(in_padding_size != 0)
+            {
+                for(int j = 0; j < in_padding_size; j++)
+                {
+                    fseek(inptr, sizeof(BYTE), SEEK_CUR);
+                }
+            }
+            // write scanline to outptr n times
+            for(int j = 0; j < resize_ratio; j++)
+            {
+                // iterate over each pixel stored in array
+                for(int k = 0; k < abs(old_biWidth); k++)
+                {
+                    // write each pixel to outptr n times
+                    for(int l = 0; l < resize_ratio; l++)
+                    {
+                        fwrite(&RGB[k], sizeof(RGBTRIPLE), 1, outptr);
+                    }
+                }
+                // write padding to outptr (if any)
+                for(int k = 0; k < out_padding_size; k++)
+                {
+                    fputc(0x00, outptr);
+                }
+            }
+            free(RGB);
+        }
+        //printf("File resized (grown)!\n");
+    }
+    
+    // close files and return
+    fclose(inptr);
+    fclose(outptr);
+    return 0;
+}
