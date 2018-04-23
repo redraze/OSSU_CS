@@ -1,0 +1,71 @@
+/**
+ * Helper functions for Problem Set 3.
+ */
+
+#include <cs50.h>
+
+#include "helpers.h"
+
+const int MAX;
+
+//Returns true if value is in array of n values, else false.
+bool search(int value, int values[], int n)
+{
+    if(n < 1){
+        return false;
+    }else if(n == 1){
+        if(value == values[n - 1]){
+            return true;
+        }else{
+            return false;
+        };
+    }else{
+        if(n % 2 == 0){         //if n is even
+            if(value == values[n/2]){
+                return true;
+            };
+            if(value > values[n/2]){
+                for(int i = 0; i < n/2 - 1; i++){
+                    values[i] = values[i + n/2 + 1];
+                };
+                if(search(value, values, n/2 - 1)){
+                    return true;
+                };
+            }else{
+                if(search(value, values, n/2)){
+                    return true;
+                };
+            };
+        }else{                  //if n is odd
+            if(value == values[(n - 1)/2]){
+                return true;
+            };
+            if(value > values[(n - 1)/2]){
+                for(int i = 0; i < (n - 1)/2; i++){
+                    values[i] = values[i + (n - 1)/2 + 1];
+                };
+            };
+            if(search(value, values, (n - 1)/2)){
+                return true;
+            };
+        };
+    };
+    return false;
+};
+
+//Sorts array of n values.
+void sort(int values[], int n)
+{
+    int new_values[MAX];
+    for(int i = 0; i < n; i++){
+        new_values[values[i]] = values[i];
+    };
+    int count = 0;
+    for(int i = 0; i < MAX; i++){
+        if(new_values[i]){
+            values[count] = new_values[i];
+            count++;
+        };
+    };
+    return;
+}
