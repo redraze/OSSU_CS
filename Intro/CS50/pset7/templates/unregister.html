@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Unregister
+{% endblock %}
+
+{% block main %}
+    <div class="conf">
+        Are you sure you want to delete your account?<br/>
+        <div class="charity">
+            (Leftover money in your account and proceeds from stock liquidation will go to homeless kittens)
+        </div>
+    </div>
+    <br/>
+    <form action="{{ url_for('unregister') }}" method="post">
+        <button class="btn btn-default" type="submit">Yes, delete my account.</button>
+    </form>
+{% endblock %}
