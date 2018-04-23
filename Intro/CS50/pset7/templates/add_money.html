@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Add Money
+{% endblock %}
+
+{% block main %}
+<div class="add_money">
+    <form action="{{ url_for('add_money') }}" method="post">
+        <fieldset>
+            How much money would you like to deposit into your account?
+            <br/><br/>
+            <div class="form-group">
+                Current balance: {{ balance }}
+            </div>
+            <div class="form-group">
+                <input autocomplete="off" autofocus class="form-control" name="amount" placeholder="$0.00" type="text"/>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-default" type="submit">Ca-ching!</button>
+            </div>
+        </fieldset>
+    </form>
+</div>
+{% endblock %}
