@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Quote
+{% endblock %}
+
+{% block main %}
+    {% if info %}
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Price per Share</th>
+                <th>Symbol</th>
+            </tr>
+            <tr>
+            {% for data in info %}
+                <td>{{ data }}</td>
+            {% endfor %}
+            </tr>
+        </table>
+        <div class="buy">
+            How many shares would you like to buy?
+        </div>
+        <div class="balance">
+            (Current balance: {{ balance }})
+        </div>
+        <form action="{{ url_for('buy') }}" method="post">
+            <div class="form-group">
+                <input type="text" autofocus class="form-control" name="amount" autocomplete="off" placeholder="Number of shares">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-default" type="submit">Submit</button>
+            </div>
+        </form>
+    {% else %}
+        <form action="{{ url_for('quote') }}" method="post">
+            <fieldset>
+                <legend class="lookup">Stock Price Lookup</legend>
+                <div class="form-group">
+                    <input type="text" autofocus class="form-control" name="symbol" autocomplete="off" placeholder="Stock symbol">
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-default" type="submit">Submit</button>
+                </div>
+            </fieldset>
+        </form>
+    {% endif %}
+{% endblock %}
