@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Sell
+{% endblock %}
+
+{% block main %}
+<table>
+    <tr>
+        <th>Stock Name</th>
+        <th>Stock Symbol</th>
+        <th>Current price per share</th>
+        <th>Amount to sell</th>
+        <th>Gain from transaction</th>
+    </tr>
+    {% for item in data %}
+    <tr>
+        {% for value in item %}
+        <td>{{ value }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+<div class="container">
+    <div>
+        Current balance: {{ session["balance"] }}
+    </div>
+    <div>
+        Total monetary gain: {{ total_gain }}
+    </div>
+    <div>
+        New balance: {{ new_balance }}
+    </div>
+</div>
+<div class="form-group">
+    <form action="{{ url_for('portfolio') }}" method="post">
+        <button class="btn btn-default">Confirm Liquidation</button>
+    </form>
+</div>
+{% endblock %}
